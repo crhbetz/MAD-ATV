@@ -2,7 +2,7 @@
 # Install the NFS module
 # version 1.2
 #
-NFS_url="https://github.com/Map-A-Droid/MAD-ATV/raw/master/nfs/NFS-INJECTOR-v7.8.FLASHPOINT.zip"
+NFS_url="https://github.com/crhbetz/MAD-ATV/raw/master/nfs/NFS-INJECTOR-v7.8.FLASHPOINT.zip"
 useragent="Mozilla/5.0 (Windows; U; Windows NT 5.1; de; rv:1.9.2.3) Gecko/20100401 Firefox/3.6.3"
 
 download(){

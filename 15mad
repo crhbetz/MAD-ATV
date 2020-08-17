@@ -7,6 +7,6 @@
 mount -o remount,rw /system
 cp /sdcard/curl /system/bin/curl
 chmod +x /system/bin/curl
-/system/bin/curl -k -s https://raw.githubusercontent.com/Map-A-Droid/MAD-ATV/master/update_mad.sh > /sdcard/update_mad.sh
+/system/bin/curl -k -s https://raw.githubusercontent.com/crhbetz/MAD-ATV/master/update_mad.sh > /sdcard/update_mad.sh
 mv /sdcard/update_mad.sh /system/bin/update_mad.sh
 chmod +x /system/bin/update_mad.sh

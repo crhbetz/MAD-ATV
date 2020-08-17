@@ -49,7 +49,7 @@ echo "Delete old APK RGC"
 /system/bin/rm -f /sdcard/Download/RemoteGpsController.apk
 echo "Download APK RGC"
 cd /sdcard/Download/
-/system/bin/curl -L -o RemoteGpsController.apk -k -s https://raw.githubusercontent.com/Map-A-Droid/MAD/master/APK/RemoteGpsController.apk
+/system/bin/curl -L -o RemoteGpsController.apk -k -s https://raw.githubusercontent.com/crhbetz/MAD/master/APK/RemoteGpsController.apk
 echo "Install APK RGC"
 /system/bin/pm install -r /sdcard/Download/RemoteGpsController.apk
 reboot=1
@@ -161,9 +161,9 @@ reboot=1
 update_init(){
 echo "updating init scripts..."
 if [[ "$arch" == "arm64_v8a" ]] ;then
- /system/bin/curl -o /etc/init.d/42mad -k -s https://raw.githubusercontent.com/Map-A-Droid/MAD-ATV/master/42mad && chmod +x /etc/init.d/42mad
+ /system/bin/curl -o /etc/init.d/42mad -k -s https://raw.githubusercontent.com/crhbetz/MAD-ATV/master/42mad && chmod +x /etc/init.d/42mad
 else
- /system/bin/curl -o /etc/init.d/16mad -k -s https://raw.githubusercontent.com/Map-A-Droid/MAD-ATV/master/16mad && chmod +x /etc/init.d/16mad
+ /system/bin/curl -o /etc/init.d/16mad -k -s https://raw.githubusercontent.com/crhbetz/MAD-ATV/master/16mad && chmod +x /etc/init.d/16mad
  reboot=1
 fi
 }
