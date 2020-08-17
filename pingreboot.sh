@@ -1,9 +1,18 @@
 #!/system/bin/sh
 #version 2.1
 
-log -t PingReboot "PingReboot: checking for /data/local/tmp/pingreboot file"
-[ -f /data/local/tmp/pingreboot ] || log -t PingReboot "/data/local/tmp/pingreboot not existing, not starting PingReboot"; exit
-log -t PingReboot "PingReboot: started"
+lolcat(){
+log -t PingReboot $1
+}
+
+SETTINGSFILE=/data/local/tmp/pingreboot
+lolcat "PingReboot: checking for $SETTINGSFILE file"
+if [ -f $SETTINGSFILE ]; then
+  lolcat "$SETTINGSFILE found"
+else
+  lolcat "$SETTINGSFILE not existing, not starting PingReboot"
+  exit 1
+lolcat "PingReboot: starting"
 
 # These values can be overridden by putting them
 # in $CONF_FILE with a custom value.
@@ -15,23 +24,24 @@ REENABLE_EVERY=4
 REBOOT_AFTER=10
 
 DEVICE=$(ip route get 8.8.8.8 | sed -nr 's/.*dev ([^\ ]+).*/\1/p')
-source /data/local/tmp/pingreboot
+source $SETTINGSFILE
 
 c=0
+lolcat "now entering the eternal loop"
 while true; do
   if ping -c 1 "$PING_HOST" > /dev/null; then
     c=0
   else
     c=$((c+1))
-    log -t PingReboot "PingReboot: network failure, could not ping $PING_HOST (c=$c)"
+    lolcat "PingReboot: network failure, could not ping $PING_HOST (c=$c)"
     if (( $c > $REBOOT_AFTER )); then
        reboot
     elif (( $c % $REENABLE_EVERY == 0 )); then
-      log -t PingReboot "PingReboot: re-enabling $DEVICE"
+      lolcat "PingReboot: re-enabling $DEVICE"
       ifconfig down $DEVICE
       sleep 4
       ifconfig up $DEVICE
-      log -t PingReboot "PingReboot: device $DEVICE re-enabled"
+      lolcat "PingReboot: device $DEVICE re-enabled"
     fi
   fi
   sleep $RUN_EVERY
