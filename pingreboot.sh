@@ -1,8 +1,8 @@
 #!/system/bin/sh
 #version 2.1
 
-log -t PingReboot "PingReboot: checking for /sdcard/pingreboot file"
-[ -f /sdcard/pingreboot ] || log -t PingReboot "/sdcard/pingreboot not existing, not starting PingReboot"; exit
+log -t PingReboot "PingReboot: checking for /data/local/tmp/pingreboot file"
+[ -f /data/local/tmp/pingreboot ] || log -t PingReboot "/data/local/tmp/pingreboot not existing, not starting PingReboot"; exit
 log -t PingReboot "PingReboot: started"
 
 # These values can be overridden by putting them
@@ -15,7 +15,7 @@ REENABLE_EVERY=4
 REBOOT_AFTER=10
 
 DEVICE=$(ip route get 8.8.8.8 | sed -nr 's/.*dev ([^\ ]+).*/\1/p')
-source /sdcard/pingreboot
+source /data/local/tmp/pingreboot
 
 c=0
 while true; do
