@@ -1,12 +1,12 @@
 #!/system/bin/sh
 #This is for update_mad version
-uver="3.5"
+uver="3.6"
 #This is for pingreboot version
-pver="2.0"
+pver="2.1"
 #This is for nfs install script
 nver="1.2"
 # mad rom version
-madver="0.2"
+madver="0.3"
 #magisk version / url
 magisk_ver="20.3"
 msum="959e46971c2eb500b91a053b2f1c1a8c"
@@ -274,8 +274,12 @@ fi
 }
 
 ################ start of execution
+log -t 42mad "starting up, sleep 20"
 sleep 20 # in case mounting /sdcard and usb takes awhile
+log -t 42mad "start PingReboot"
+/system/bin/sh /system/bin/pingreboot.sh &
 wait_for_network
+log -t 42mad "network established, start 42mad execution"
 if [[ -f "$pdconf" ]] ;then
     origin="$(awk -F'>' '/post_origin/{print $2}' "$pdconf"|awk -F'<' '{print $1}')"
     pdserver="$(grep -v raw "$pdconf"|awk -F'>' '/post_destination/{print $2}'|awk -F'<' '{print $1}')"
