@@ -19,10 +19,15 @@ requires_autoconf=1
 reboot_required=0
 cachereboot=0
 
+lolcat(){
+log -t 42mad "$1"
+}
+
 download(){
 # $1 = url
 # $2 = local path
 # lets see that curl exits successfully
+lolcat "Trying to download $1 to $2"
 until /system/bin/curl -s -k -L -A "$useragent" -o "$2" "$1" ;do
     sleep 15
 done
@@ -78,11 +83,16 @@ fi
 }
 
 execute_autoupdates(){
+lolcat "execute_autoupdates"
+lolcat "checking for update_mad.sh update"
 if ! grep -q "version $uver" /system/bin/update_mad.sh; then
+    lolcat "Newer version of update_mad.sh available"
     download https://raw.githubusercontent.com/crhbetz/MAD-ATV/master/update_mad.sh /system/bin/update_mad.sh
     chmod +x /system/bin/update_mad.sh
 fi
+lolcat "checking for pingreboot.sh update"
 if ! grep -q "version $pver" /system/bin/pingreboot.sh; then
+     lolcat "Newer version of ping_reboot.sh available"
      download https://raw.githubusercontent.com/crhbetz/MAD-ATV/master/pingreboot.sh /system/bin/pingreboot.sh
      chmod +x /system/bin/pingreboot.sh
 fi
@@ -137,8 +147,10 @@ fi
 
 wait_for_network(){
 echo "Waiting for network"
+lolcat "Waiting for network ..."
 until ping -c1 8.8.8.8 >/dev/null 2>/dev/null; do
-    "No network detected.  Sleeping 10s"
+    echo "No network detected.  Sleeping 10s"
+    lolcat "No network detected.  Sleeping 10s"
     sleep 10
 done
 echo "Network connection detected"
@@ -274,12 +286,12 @@ fi
 }
 
 ################ start of execution
-log -t 42mad "starting up, sleep 20"
+lolcat "starting up, sleep 20"
 sleep 20 # in case mounting /sdcard and usb takes awhile
-log -t 42mad "start PingReboot"
+lolcat "start PingReboot"
 /system/bin/sh /system/bin/pingreboot.sh &
 wait_for_network
-log -t 42mad "network established, start 42mad execution"
+lolcat "network established, start 42mad execution"
 if [[ -f "$pdconf" ]] ;then
     origin="$(awk -F'>' '/post_origin/{print $2}' "$pdconf"|awk -F'<' '{print $1}')"
     pdserver="$(grep -v raw "$pdconf"|awk -F'>' '/post_destination/{print $2}'|awk -F'<' '{print $1}')"
@@ -314,6 +326,7 @@ else
         sh -x /system/bin/update_mad.sh -pdc -wa
     fi
 fi
+lolcat "Remount system rw"
 mount -o remount,rw /system
 check_magisk
 # Install gapps
@@ -389,5 +402,6 @@ if [[ -f /sdcard/reg_session ]] && [[ -f "$pdconf" ]] && [[ -f "$rgcconf" ]] ;th
     reboot
 fi
 execute_autoupdates
+lolcat "Remount system ro"
 mount -o remount,ro /system
 # initdebug
