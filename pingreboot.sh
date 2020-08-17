@@ -12,6 +12,7 @@ if [ -f $SETTINGSFILE ]; then
 else
   lolcat "$SETTINGSFILE not existing, not starting PingReboot"
   exit 1
+fi
 lolcat "PingReboot: starting"
 
 # These values can be overridden by putting them
