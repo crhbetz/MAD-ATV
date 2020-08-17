@@ -39,9 +39,9 @@ while true; do
        reboot
     elif (( $c % $REENABLE_EVERY == 0 )); then
       lolcat "PingReboot: re-enabling $DEVICE"
-      ifconfig down $DEVICE
+      ifconfig $DEVICE down
       sleep 4
-      ifconfig up $DEVICE
+      ifconfig $DEVICE up
       lolcat "PingReboot: device $DEVICE re-enabled"
     fi
   fi
