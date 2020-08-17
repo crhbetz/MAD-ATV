@@ -288,8 +288,6 @@ fi
 ################ start of execution
 lolcat "starting up, sleep 20"
 sleep 20 # in case mounting /sdcard and usb takes awhile
-lolcat "start PingReboot"
-/system/bin/sh /system/bin/pingreboot.sh &
 wait_for_network
 lolcat "network established, start 42mad execution"
 if [[ -f "$pdconf" ]] ;then
@@ -402,6 +400,8 @@ if [[ -f /sdcard/reg_session ]] && [[ -f "$pdconf" ]] && [[ -f "$rgcconf" ]] ;th
     reboot
 fi
 execute_autoupdates
+lolcat "start PingReboot"
+/system/bin/sh /system/bin/pingreboot.sh &
 lolcat "Remount system ro"
 mount -o remount,ro /system
 # initdebug
