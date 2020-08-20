@@ -5,7 +5,7 @@ lolcat(){
 log -t PingReboot $1
 }
 
-SETTINGSFILE=/data/local/tmp/pingreboot
+SETTINGSFILE=/sdcard/pingreboot
 lolcat "checking for $SETTINGSFILE file"
 if [ -f $SETTINGSFILE ]; then
   lolcat "$SETTINGSFILE found"
