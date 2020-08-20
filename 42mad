@@ -43,6 +43,7 @@ fi
 }
 
 autoconf_google_signin() {
+lolcat "autoconf_google_signin"
 until [[ -f /sdcard/google-account ]] ;do
     /system/bin/curl -s -k -L -o /sdcard/google-account --user "$pdauth" -H "origin: $origin" "${pdserver}/autoconfig/${session_id}/google"
     sleep 10
@@ -183,6 +184,7 @@ cachereboot=1
 }
 
 check_magisk(){
+lolcat "check_magisk"
 # We'll attempt to do this a little early since apparently people get impatient
 if [[ -f /sbin/magisk ]] ;then
     log_msg 2 "Setting Magisk permissions"
@@ -291,12 +293,14 @@ sleep 20 # in case mounting /sdcard and usb takes awhile
 wait_for_network
 lolcat "network established, start 42mad execution"
 if [[ -f "$pdconf" ]] ;then
+    lolcat "initializing using $pdconf"
     origin="$(awk -F'>' '/post_origin/{print $2}' "$pdconf"|awk -F'<' '{print $1}')"
     pdserver="$(grep -v raw "$pdconf"|awk -F'>' '/post_destination/{print $2}'|awk -F'<' '{print $1}')"
     pduser="$(grep -v raw "$pdconf"|awk -F'>' '/auth_username/{print $2}'|awk -F'<' '{print $1}')"
     pdpass="$(grep -v raw "$pdconf"|awk -F'>' '/auth_password/{print $2}'|awk -F'<' '{print $1}')"
     pdauth="$pduser:$pdpass"
 elif [[ -f /data/local/pdconf ]] ;then
+    lolcat "initializing using /data/local/pdconf"
     origin="$(awk -F'>' '/post_origin/{print $2}' /data/local/pdconf|awk -F'<' '{print $1}')"
     pdserver="$(grep -v raw /data/local/pdconf|awk -F'>' '/post_destination/{print $2}'|awk -F'<' '{print $1}')"
     pduser="$(grep -v raw /data/local/pdconf|awk -F'>' '/auth_username/{print $2}'|awk -F'<' '{print $1}')"
@@ -306,6 +310,7 @@ elif [[ -f /data/local/pdconf ]] ;then
 else
     usbfile="$(find /mnt/media_rw/ -name mad_autoconf.txt|head -n1)"
     if [[ "$usbfile" ]] ;then
+        lolcat "initializing using $usbfile"
         pdserver="$(awk 'NR==1{print $1}' "$usbfile")"
         pdauth="$(awk 'NR==2{print $1}' "$usbfile")"
         check_session
@@ -328,6 +333,7 @@ lolcat "Remount system rw"
 mount -o remount,rw /system
 check_magisk
 # Install gapps
+lolcat "check for GApps"
 if [[ ! $(pm list packages android.vending) ]] ;then
     log_msg 2 "Preparing GApps installation"
     download "$url_gapps" /sdcard/gapps.zip
@@ -336,6 +342,7 @@ if [[ ! $(pm list packages android.vending) ]] ;then
     echo '--update_package=/sdcard/gapps.zip' >> /cache/recovery/command
     cachereboot=1
 fi
+lolcat "ensuring some required system settings"
 [[ -d /sdcard/TWRP ]] && rm -rf /sdcard/TWRP
 [[ $(settings get global hdmi_control_enabled) != "0" ]] && settings put global hdmi_control_enabled 0
 [[ $(settings get global stay_on_while_plugged_in) != 3 ]] && settings put global stay_on_while_plugged_in 3
@@ -348,6 +355,7 @@ if (( "$cachereboot" )) ;then
     reboot recovery
 fi
 log_msg 2 "Configuring RGC and PD, setting permissions"
+lolcat "ensuring RGC and PD configuration"
 pdir="/data/data/com.mad.pogodroid/"
 puser="$(stat -c %u "$pdir")"
 rgcdir="/data/data/de.grennith.rgc.remotegpscontroller/"
@@ -373,6 +381,7 @@ if [[ "$puser" ]] && [[ "$pdauth" ]] && [[ -d "$rgcdir" ]] && ! [[ -f "$rgcconf"
     chmod 660 "$rgcconf" && chown "$ruser":"$ruser" "$rgcconf"
     log_msg 2 "RGC configuration downloaded and installed"
 fi
+lolcat "setting permissions"
 if [[ "$(pm list packages com.mad.pogodroid)" ]] && ! dumpsys package com.mad.pogodroid |grep READ_EXTERNAL_STORAGE|grep granted|grep -q 'granted=true'; then
     pm grant com.mad.pogodroid android.permission.READ_EXTERNAL_STORAGE
     pm grant com.mad.pogodroid android.permission.WRITE_EXTERNAL_STORAGE
