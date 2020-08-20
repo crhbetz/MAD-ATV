@@ -24,8 +24,8 @@ RUN_EVERY=30
 REENABLE_EVERY=1
 REBOOT_AFTER=10
 
-DEVICE=$(ip route get 8.8.8.8 | sed -nr 's/.*dev ([^\ ]+).*/\1/p')
-lolcat "identified $DEVICE as the internet connected interface"
+INTERFACE=$(ip route get 8.8.8.8 | sed -nr 's/.*dev ([^\ ]+).*/\1/p')
+lolcat "identified $INTERFACE as the internet connected interface"
 source $CONF_FILE
 
 c=0
@@ -42,11 +42,11 @@ while true; do
     if (( $c > $REBOOT_AFTER )); then
        reboot
     elif (( $c % $REENABLE_EVERY == 0 )); then
-      lolcat "re-enabling $DEVICE"
-      ifconfig $DEVICE down
+      lolcat "re-enabling $INTERFACE"
+      ifconfig $INTERFACE down
       sleep 4
-      ifconfig $DEVICE up
-      lolcat "device $DEVICE re-enabled"
+      ifconfig $INTERFACE up
+      lolcat "interface $INTERFACE re-enabled"
     fi
   fi
   sleep $RUN_EVERY
