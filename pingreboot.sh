@@ -5,12 +5,12 @@ lolcat(){
 log -t PingReboot $1
 }
 
-SETTINGSFILE=/sdcard/pingreboot
-lolcat "checking for $SETTINGSFILE file"
-if [ -f $SETTINGSFILE ]; then
-  lolcat "$SETTINGSFILE found"
+CONF_FILE=/sdcard/pingreboot
+lolcat "checking for $CONF_FILE file"
+if [ -f $CONF_FILE ]; then
+  lolcat "$CONF_FILE found"
 else
-  lolcat "$SETTINGSFILE not existing, not starting PingReboot"
+  lolcat "$CONF_FILE not existing, not starting PingReboot"
   exit 1
 fi
 lolcat "starting"
@@ -21,12 +21,12 @@ lolcat "starting"
 #
 PING_HOST="google.com"
 RUN_EVERY=30
-REENABLE_EVERY=4
+REENABLE_EVERY=1
 REBOOT_AFTER=10
 
 DEVICE=$(ip route get 8.8.8.8 | sed -nr 's/.*dev ([^\ ]+).*/\1/p')
 lolcat "identified $DEVICE as the internet connected interface"
-source $SETTINGSFILE
+source $CONF_FILE
 
 c=0
 lolcat "now entering the eternal loop"
