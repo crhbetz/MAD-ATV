@@ -1,6 +1,6 @@
 #!/system/bin/sh
 # update mad
-# version 3.5
+# version 4.0
 # created by GhostTalker, hijaked by krz
 #
 # adb connect %1:5555
@@ -37,7 +37,7 @@ echo "Delete old APK PogoDroid"
 /system/bin/rm -f /sdcard/Download/PogoDroid.apk
 echo "Download APK PogoDroid"
 cd /sdcard/Download/
-/system/bin/curl -L -o PogoDroid.apk -k -s https://www.maddev.de/apk/PogoDroid.apk
+/system/bin/curl -L -o PogoDroid.apk -k -s https://www.maddev.eu/apk/PogoDroid.apk
 echo "Install APK PogoDroid"
 /system/bin/pm install -r /sdcard/Download/PogoDroid.apk
 reboot=1
@@ -137,24 +137,39 @@ pserver=$(grep -v raw "$pdconf"|awk -F'>' '/post_destination/{print $2}'|awk -F'
 origin=$(awk -F'>' '/post_origin/{print $2}' "$pdconf"|awk -F'<' '{print $1}')
 newver="$(curl -s -k -L $(get_pd_user) -H "origin: $origin" "$pserver/mad_apk/pogo/$arch")"
 installedver="$(dumpsys package com.nianticlabs.pokemongo|awk -F'=' '/versionName/{print $2}')"
-[[ "$newver" == "$installedver" ]] && unset UpdatePoGo && echo "The madmin wizard has version $newver and so do we, doing nothing." && return 0
 [[ "$newver" == "" ]] && unset UpdatePoGo && echo "The madmin wizard has no pogo in its system apks, or your pogodroid is not configured" && return 1
+[[ "$newver" == "$installedver" ]] && unset UpdatePoGo && echo "The madmin wizard has version $newver and so do we, doing nothing." && return 0
 echo "updating PokemonGo..."
 mkdir -p /sdcard/Download/pogo
 /system/bin/rm -f /sdcard/Download/pogo/*
-echo "Download APK PokemonGo"
-(cd /sdcard/Download/pogo
-until curl -o /sdcard/Download/pogo/pogo.zip -s -k -L $(get_pd_user) -H "origin: $origin" "$pserver/mad_apk/pogo/$arch/download" && unzip pogo.zip && rm pogo.zip ;do
- /system/bin/rm -f /sdcard/Download/pogo/*
- sleep 2
-done
-echo "Install APK PokemonGo"
-session=$(pm install-create -r | cut -d [ -f2 | cut -d ] -f1)
-for a in * ;do
- pm install-write -S $(stat -c %s $a) $session $a $a
-done
-pm install-commit $session
-)
+case "$(curl -I -s -k -L $(get_pd_user) -H "origin: $origin" "$pserver/mad_apk/pogo/$arch/download"|grep -i Content-Type)" in
+ *zip*) (cd /sdcard/Download/pogo
+       until curl -o /sdcard/Download/pogo/pogo.zip -s -k -L $(get_pd_user) -H "origin: $origin" "$pserver/mad_apk/pogo/$arch/download" && unzip pogo.zip && rm pogo.zip ;do
+        echo "Download ZIP PokemonGo"
+        /system/bin/rm -f /sdcard/Download/pogo/*
+        sleep 2
+       done
+       echo "Install ZIP PokemonGo"
+       session=$(pm install-create -r | cut -d [ -f2 | cut -d ] -f1)
+       for a in * ;do
+        pm install-write -S $(stat -c %s $a) $session $a $a
+       done
+       pm install-commit $session )
+ ;;
+ *vnd.android.package-archive*)
+       until curl -o /sdcard/Download/pogo/pogo.apk -s -k -L $(get_pd_user) -H "origin: $origin" "$pserver/mad_apk/pogo/$arch/download" ;do
+        echo "Download APK PokemonGo"
+        /system/bin/rm -f /sdcard/Download/pogo/*
+        sleep 2
+       done
+       echo "Install APK PokemonGo"
+       /system/bin/pm install -r /sdcard/Download/pogo/pogo.apk
+ ;;
+ *)    echo "unknown format pogo detected from madmin wizard"
+       curl -I -s -k -L $(get_pd_user) -H "origin: $origin" "$pserver/mad_apk/pogo/$arch/download"|grep -i Content-Type
+       return 1
+ ;;
+esac
 reboot=1
 }
 
@@ -171,11 +186,13 @@ fi
 update_dhcp(){
 grep -q net.hostname /system/build.prop && unset UpdateDHCP && return 1
 origin="$(awk -F'>' '/post_origin/{print $2}' /data/data/com.mad.pogodroid/shared_prefs/com.mad.pogodroid_preferences.xml|cut -d'<' -f1)"
+mount -o remount,rw /system
 if grep -q 'net.hostname' /system/build.prop ;then
  sed -i -e "s/^net.hostname=.*/net.hostname=${origin}/g" /system/build.prop
 else
  echo "net.hostname=${origin}" >> /system/build.prop
 fi
+mount -o remount,ro /system
 reboot=1
 }
 

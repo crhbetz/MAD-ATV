@@ -1,19 +1,20 @@
 #!/system/bin/sh
 #This is for update_mad version
-uver="3.5"
+uver="4.0"
 #This is for pingreboot version
 pver="2.1"
 #This is for nfs install script
 nver="1.2"
 # mad rom version
-madver="0.2"
+madver="0.4"
 #magisk version / url
 magisk_ver="20.3"
 msum="959e46971c2eb500b91a053b2f1c1a8c"
-url_magisk="https://github.com/crhbetz/MAD-ATV/raw/master/Magisk-v20.3.zip"
-url_gapps="https://netcologne.dl.sourceforge.net/project/opengapps/arm64/20200715/open_gapps-arm64-7.1-pico-20200715.zip"
+url_magisk="https://github.com/Map-A-Droid/MAD-ATV/raw/master/Magisk-v20.3.zip"
+url_gapps="https://madatv.b-cdn.net/open_gapps-arm64-7.1-pico-20200715.zip"
 rgcconf="/data/data/de.grennith.rgc.remotegpscontroller/shared_prefs/de.grennith.rgc.remotegpscontroller_preferences.xml"
 pdconf="/data/data/com.mad.pogodroid/shared_prefs/com.mad.pogodroid_preferences.xml"
+useragent='Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:53.0) Gecko/20100101 Firefox/53.0'
 
 requires_autoconf=1
 reboot_required=0
@@ -42,44 +43,134 @@ if [[ "$session_id" ]] ;then
 fi
 }
 
+wait_for_google(){
+until awk -F'"' '/com.android.contacts"/{print $8}' /data/system/sync/accounts.xml |grep -q "$email" ;do
+ sleep 60
+done
+}
+
+detect_goog_window(){
+if awk -F'"' '/com.android.contacts"/{print $8}' /data/system/sync/accounts.xml |grep -q "$email" ;then
+    return 0
+elif ! grep -q "com.google.android.gms" /sdcard/window_dump.xml ;then
+    return 0 # this isnt really success, but it will get caught by an outter loop and start over
+elif grep -q "Forgot email?" /sdcard/window_dump.xml ;then
+    input keyevent 20
+    sleep 2
+    input keyevent 20
+    sleep 2
+    input text "$email"
+    sleep 2
+    input keyevent 66
+elif grep -q "Enter your password" /sdcard/window_dump.xml ;then
+    input keyevent 20
+    sleep 2
+    input text "$(sed -n 2p /sdcard/google-account)"
+    sleep 2
+    input keyevent 66
+elif grep -q "describes how Google handles information generated" /sdcard/window_dump.xml ;then
+    i=0
+    while (( "$i" < 5 )); do
+        input keyevent 20
+        i=$((i+1))
+        sleep 2
+    done
+    input keyevent 66
+elif grep -q "confirm your selection of these Google services settings." /sdcard/window_dump.xml ;then
+    input keyevent 20
+    sleep 2
+    input keyevent 20
+    sleep 2
+    input keyevent 66
+    sleep 2
+    input keyevent 20
+    sleep 2
+    input keyevent 66
+elif grep -q "you can add this phone’s number to your account" /sdcard/window_dump.xml ;then
+    i=0
+    while (( "$i" < 5 )); do
+        input keyevent 20
+        i=$((i+1))
+        sleep 2
+    done
+    input keyevent 66
+elif grep -q "Add phone number?" /sdcard/window_dump.xml ;then
+#    input keyevent 66
+#    sleep 5
+#    input keyevent 20
+#    sleep 2
+#    input keyevent 20
+#    sleep 2
+#    input keyevent 20
+#    sleep 2
+#    input keyevent 66
+# itrack says this was no good
+# replaced with what he says works for him:
+    i=0
+    while (( "$i" < 5 )); do
+        input keyevent 20
+        i=$((i+1))
+        sleep 2
+    done
+    input keyevent 66
+elif grep -q "Confirm your recovery email" /sdcard/window_dump.xml ;then
+    log_msg 2 "Google is demanding that you verify the recovery email which you added to your account. You're the one who added an email, theres nothing I can do about it. You'll need to complete the process yourself."
+    log_msg 2 "I will check every 60 seconds to see if you are done signing in to google yet. After I see you are finished I should continue the process."
+    wait_for_google
+elif grep -q "Enter a phone number to get a text message with a verification code." /sdcard/window_dump.xml ;then
+    log_msg 2 "Google is demanding that you verify the phone number which you added to your account. You're the one who added a phone number, theres nothing I can do about it. You'll need to complete the process yourself."
+    log_msg 2 "I will check every 60 seconds to see if you are done signing in to google yet. After I see you are finished I should continue the process."
+    wait_for_google
+elif grep -q "any number verified on this device will be added to your Google Account" ;then
+    log_msg 2 "Google weants you to add a number to your account. Congratulations, you can help me improve this part of the sign-in process! With your keyboard I want you to see exactly what keypresses get you past this screen."
+    log_msg 2 "For example, maybe you press TAB 5 times, and then enter. If you find the answer, tell krz in #atv please."
+    log_msg 2 "I will check every 60 seconds to see if you are done signing in to google yet. After I see you are finished I should continue the process."
+    wait_for_google
+elif grep -q "Sorry, something went wrong there. Try again." /sdcard/window_dump.xml ;then
+    am force-stop com.google.android.gms
+    log_msg 2 "Google hates you. killing it and starting over"
+else
+    log_msg 2 "Issue detecting the google screen, trying again (up to 6 times) in case it was loading."
+    return 1
+fi
+}
+
 autoconf_google_signin() {
-lolcat "autoconf_google_signin"
 until [[ -f /sdcard/google-account ]] ;do
     /system/bin/curl -s -k -L -o /sdcard/google-account --user "$pdauth" -H "origin: $origin" "${pdserver}/autoconfig/${session_id}/google"
     sleep 10
 done
 if [[  "$(sed -n 2p /sdcard/google-account)" ]] ;then
-    log_msg 2 "Google Account data downloaded to /sdcard/google-account - trying to log in"
-    am start -a android.settings.ADD_ACCOUNT_SETTINGS
-    sleep 40
-    input keyevent 20
-    input keyevent 20
-    sleep 5
-    input text $(sed -n 1p /sdcard/google-account)
-    sleep 5
-    input keyevent 66
-    sleep 5
-    input keyevent 20
-    sleep 5
-    input text $(sed -n 2p /sdcard/google-account)
-    sleep 5
-    input keyevent 66
-    sleep 5
-    i=0
-    while (( "$i" < 9 )); do
-        input keyevent 20
-        i=$((i+1))
-        sleep 1
+    am force-stop de.grennith.rgc.remotegpscontroller
+    log_msg 2 "Google Account data downloaded to /sdcard/google-account"
+    email="$(sed -n 1p /sdcard/google-account|tr [:upper:] [:lower:])"
+    if grep -q 'html public' <<< "$email" ;then
+        log_msg 2 "ignoring garbage google login from madmin, i hope you're using ptc! if not go setup google by hand."
+        return 0
+    fi
+    until awk -F'"' '/com.android.contacts"/{print $8}' /data/system/sync/accounts.xml |grep -q "$email" ;do
+        log_msg 2 "trying to log in to gmail as $email"
+        am start -a android.settings.ADD_ACCOUNT_SETTINGS
+        sleep 40
+        while uiautomator dump -a && sleep 5 && grep -q "com.google.android.gms" /sdcard/window_dump.xml ;do
+            awk -F'"' '/com.android.contacts"/{print $8}' /data/system/sync/accounts.xml |grep -q "$email" && break
+            c=0
+            until detect_goog_window ;do
+                if (($c > 6)) ;then
+                    log_msg 2 "this google screen can not be detected yet. please get your /sdcard/window_dump.xml from this box to krz. Also if you can bypass this screen, tell krz exactly what keyboard keypresses gets past the screen."
+                    log_msg 2 "exiting the script so you can collect /sdcard/window_dump.xml"
+                    exit 1
+                fi
+                c="$((c+1))"
+                sleep 8
+                uiautomator dump -a
+                sleep 2
+            done
+            sleep 10
+        done
     done
-    input keyevent 66
-    sleep 5
-    i=0
-    while (( "$i" < 3 )); do
-        input keyevent 20
-        i=$((i+1))
-        sleep 1
-    done
-    input keyevent 66
+    log_msg 2 "Google login successful"
+    monkey -p de.grennith.rgc.remotegpscontroller 1
 else
     log_msg 2 "No google account assigned to this device - skipping google login. I hope you setup PTC and enabled screen detection!"
 fi
@@ -123,21 +214,44 @@ cat /sys/class/unifykeys/read
 echo 0 > /sys/class/unifykeys/lock
 }
 
+getmadminmac(){
+all_macs="$(/system/bin/curl -s -k -L --user "$pdauth" -H "origin: $origin" "${pdserver}/autoconfig/mymac")"
+interface="$(sed -n 1p <<< "$all_macs")"
+mac="$(sed -n 2p <<< "$all_macs")"
+}
+
+setmadminmac(){
+/system/bin/curl -s -k -L --user "$pdauth" -H 'Content-Type: text/html' -H "origin: $origin" "${pdserver}/autoconfig/mymac" -d "$current_mac"
+getmadminmac
+while [[ "$mac" == "" ]] ;do
+    # if that mac was not accepted
+    current_mac=$(xxd -l 6 -p /dev/urandom |sed 's/../&:/g;s/:$//')
+    ifconfig eth0 down
+    until ifconfig eth0 hw ether "$current_mac" 2>/dev/null; do
+        current_mac=$(xxd -l 6 -p /dev/urandom |sed 's/../&:/g;s/:$//')
+    done
+    ifconfig eth0 up
+    sleep 3
+    # set a new one
+    /system/bin/curl -s -k -L --user "$pdauth" -H 'Content-Type: text/html' -H "origin: $origin" "${pdserver}/autoconfig/mymac" -d "$current_mac"
+    # check again
+    getmadminmac
+done
+}
+
 checkmac(){
 if [[ "$(/system/bin/curl -s -k -L -o /dev/null -w "%{http_code}" --user "$pdauth" -H "origin: $origin" "${pdserver}/autoconfig/mymac")" == "200" ]] ;then
-    all_macs="$(/system/bin/curl -s -k -L --user "$pdauth" -H "origin: $origin" "${pdserver}/autoconfig/mymac")"
-    interface="$(sed -n 1p <<< "$all_macs")"
-    mac="$(sed -n 2p <<< "$all_macs")"
     if ifconfig|grep -A5 wlan0|grep -q inet ;then
         current_mac=$(ifconfig wlan0|awk '/HWaddr/{print $5}')
     elif ifconfig|grep -A5 eth0|grep -q inet ;then
         current_mac=$(ifconfig eth0|awk '/HWaddr/{print $5}')
+        getmadminmac
         echo "MAD-assigned MAC: \"$mac\""
         echo "Current MAC: \"$current_mac\""
         if [[ "$mac" == "" ]] ;then
             # use our current mac for now on
+            setmadminmac
             set_mac "$current_mac"
-            /system/bin/curl -s -k -L --user "$pdauth" -H 'Content-Type: text/html' -H "origin: $origin" "${pdserver}/autoconfig/mymac" -d "$current_mac"
         elif [[ "$mac" != "$current_mac" ]] ;then
             #use the mac suppplied from madmin
             set_mac "$mac"
@@ -301,6 +415,8 @@ if [[ -f "$pdconf" ]] ;then
     pduser="$(grep -v raw "$pdconf"|awk -F'>' '/auth_username/{print $2}'|awk -F'<' '{print $1}')"
     pdpass="$(grep -v raw "$pdconf"|awk -F'>' '/auth_password/{print $2}'|awk -F'<' '{print $1}')"
     pdauth="$pduser:$pdpass"
+    pm disable-user com.android.vending
+    [[ -f /sdcard/reg_session ]] && check_session
 elif [[ -f /data/local/pdconf ]] ;then
     lolcat "initializing using /data/local/pdconf"
     origin="$(awk -F'>' '/post_origin/{print $2}' /data/local/pdconf|awk -F'<' '{print $1}')"
@@ -308,6 +424,7 @@ elif [[ -f /data/local/pdconf ]] ;then
     pduser="$(grep -v raw /data/local/pdconf|awk -F'>' '/auth_username/{print $2}'|awk -F'<' '{print $1}')"
     pdpass="$(grep -v raw /data/local/pdconf|awk -F'>' '/auth_password/{print $2}'|awk -F'<' '{print $1}')"
     pdauth="$pduser:$pdpass"
+    pm disable-user com.android.vending
     check_session
 else
     usbfile="$(find /mnt/media_rw/ -name mad_autoconf.txt|head -n1)"
@@ -400,7 +517,7 @@ if [[ "$(pm list packages de.grennith.rgc.remotegpscontroller)" ]] && ! dumpsys 
     pm grant de.grennith.rgc.remotegpscontroller android.permission.ACCESS_COARSE_LOCATION
     pm grant de.grennith.rgc.remotegpscontroller android.permission.WRITE_EXTERNAL_STORAGE
 fi
-[[ -f "$pdconf" ]] && [[ -f "$rgcconf" ]] && [[ "$origin" ]] && ! [[ "$(grep 'com.android.contacts"' /data/system/sync/accounts.xml | cut -d'"' -f8)" ]] && autoconf_google_signin
+[[ -f "$pdconf" ]] && [[ -f "$rgcconf" ]] && [[ "$origin" ]] && ! [[ "$(awk -F'"' '/com.android.contacts"/{print $8}' /data/system/sync/accounts.xml)" ]] && autoconf_google_signin
 if [[ -f /sdcard/reg_session ]] && [[ -f "$pdconf" ]] && [[ -f "$rgcconf" ]] ;then
     /system/bin/curl -s -k -L -X DELETE --user "$pdauth" "${pdserver}/autoconfig/${session_id}/complete"
     rm -f /sdcard/reg_session
