@@ -36,8 +36,8 @@ done
 log_msg() {
 # $1 = severity
 # $2 = msg
-echo "$msg"
 if [[ "$session_id" ]] ;then
+    echo "$msg"
     /system/bin/curl -s -k -L -d "$1,$2" --user "$pdauth" -H 'Content-Type: text/html' "${pdserver}/autoconfig/${session_id}/log"
 fi
 }
@@ -48,8 +48,8 @@ until [[ -f /sdcard/google-account ]] ;do
     /system/bin/curl -s -k -L -o /sdcard/google-account --user "$pdauth" -H "origin: $origin" "${pdserver}/autoconfig/${session_id}/google"
     sleep 10
 done
-log_msg 2 "Google Account data downloaded to /sdcard/google-account - trying to log in"
 if [[  "$(sed -n 2p /sdcard/google-account)" ]] ;then
+    log_msg 2 "Google Account data downloaded to /sdcard/google-account - trying to log in"
     am start -a android.settings.ADD_ACCOUNT_SETTINGS
     sleep 40
     input keyevent 20
@@ -80,6 +80,8 @@ if [[  "$(sed -n 2p /sdcard/google-account)" ]] ;then
         sleep 1
     done
     input keyevent 66
+else
+    log_msg 2 "No google account assigned to this device - skipping google login. I hope you setup PTC and enabled screen detection!"
 fi
 }
 
@@ -101,9 +103,9 @@ fi
 #    download https://raw.githubusercontent.com/crhbetz/MAD-ATV/master/nfs_install.sh /system/bin/nfs_install.sh
 #    chmod +x /system/bin/nfs_install.sh
 #fi
-! [[ -f /sdcard/disableautopogoupdate ]] && log_msg 2 "Downloading PoGo" && sh -x /system/bin/update_mad.sh -p
-! [[ -f /sdcard/disableautopogodroidupdate ]] && log_msg 2 "Downloading PogoDroid" && sh -x /system/bin/update_mad.sh -wd
-! [[ -f /sdcard/disableautorgcupdate ]] && log_msg 2 "Downloading RGC" && sh -x /system/bin/update_mad.sh -wr
+! [[ -f /sdcard/disableautopogoupdate ]] && sh -x /system/bin/update_mad.sh -p
+! [[ -f /sdcard/disableautopogodroidupdate ]] && sh -x /system/bin/update_mad.sh -wd
+! [[ -f /sdcard/disableautorgcupdate ]] && sh -x /system/bin/update_mad.sh -wr
 }
 
 #don't add it for execution as long as no one else is having issues with wrong language
