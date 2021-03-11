@@ -13,6 +13,7 @@ msum="959e46971c2eb500b91a053b2f1c1a8c"
 url_magisk="https://github.com/Map-A-Droid/MAD-ATV/raw/master/Magisk-v20.3.zip"
 url_gapps="https://madatv.b-cdn.net/open_gapps-arm64-7.1-pico-20200715.zip"
 rgcconf="/data/data/de.grennith.rgc.remotegpscontroller/shared_prefs/de.grennith.rgc.remotegpscontroller_preferences.xml"
+rgcbak="/sdcard/rgc.xml"
 pdconf="/data/data/com.mad.pogodroid/shared_prefs/com.mad.pogodroid_preferences.xml"
 useragent='Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:53.0) Gecko/20100101 Firefox/53.0'
 
@@ -403,6 +404,46 @@ else
 fi
 }
 
+compare_rgcconf(){
+echo "start compare_rgcconf"
+while IFS="" read -r line; do
+    if ! [ -z "${line##*long*}" ]; then
+        if grep "$line" "$rgcconf"; then
+            lolcat "compare_rgcconf: Found: $line"
+        else
+            lolcat "compare_rgcconf: Not found: $line"
+            return 1
+        fi
+    else
+        lolcat "compare_rgcconf found long line, ignore: $line"
+    fi
+done<"$rgcbak"
+lolcat "compare_rgcconf successful"
+return 0
+}
+
+check_rgcconf(){
+    [ -f /sdcard/lockrgc ] && locked=1 || locked=0
+    if [ $locked -eq 1 ] && [ -f $rgcbak ]; then
+        if compare_rgcconf; then
+            echo "$(date) - RGC ok" >> /sdcard/rgc-check.txt
+            lolcat "locked rgc config is ok."
+        else
+            echo "$(date) - RGC NOT ok - restore" >> /sdcard/rgc-check.txt
+            lolcat "rgc config is locked but changed, restore"
+            cp "$rgcbak" "$rgcconf"
+            chmod 660 "$rgcconf" && chown "$ruser":"$ruser" "$rgcconf"
+            reboot
+        fi
+    else
+        if ! [ -f $rgcbak ] || ( [ $locked -ne 1 ] && ! compare_rgcconf ); then
+            lolcat "rgcbak not existing or changed and unlocked - copy"
+            echo "$(date) - rgcbak not existing or changed and unlocked - copy" >> /sdcard/rgc-check.txt
+            cp $rgcconf $rgcbak
+        fi
+    fi
+}
+
 ################ start of execution
 lolcat "starting up, sleep 20"
 sleep 20 # in case mounting /sdcard and usb takes awhile
@@ -527,6 +568,9 @@ if [[ -f /sdcard/reg_session ]] && [[ -f "$pdconf" ]] && [[ -f "$rgcconf" ]] ;th
     sleep 10
     reboot
 fi
+lolcat "check rgcconf"
+check_rgcconf
+lolcat "execute autoupdates"
 execute_autoupdates
 lolcat "start PingReboot"
 /system/bin/sh /system/bin/pingreboot.sh &
