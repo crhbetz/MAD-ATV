@@ -159,9 +159,10 @@ mkdir -p /sdcard/Download/pogo
 /system/bin/rm -f /sdcard/Download/pogo/*
 case "$(curl -I -s -k -L $(get_pd_user) -H "origin: $origin" "$pserver/mad_apk/pogo/$arch/download"|grep -i Content-Type)" in
  *zip*) (cd /sdcard/Download/pogo
+       echo "Download PokemonGo as ZIP file ..."
        i=0
        until (curl -o /sdcard/Download/pogo/pogo.zip -s -k -L $(get_pd_user) -H "origin: $origin" "$pserver/mad_apk/pogo/$arch/download" && unzip pogo.zip && rm pogo.zip) || (( "$i" > "$dllimit" )) ;do
-        echo "Download ZIP PokemonGo"
+        echo "PokemonGo ZIP download failed, retry ..."
         /system/bin/rm -f /sdcard/Download/pogo/*
         i=$((i+1))
         sleep 2
@@ -179,9 +180,10 @@ case "$(curl -I -s -k -L $(get_pd_user) -H "origin: $origin" "$pserver/mad_apk/p
        pm install-commit $session )
  ;;
  *vnd.android.package-archive*)
+       echo "Download PokemonGo as APK ..."
        i=0
        until curl -o /sdcard/Download/pogo/pogo.apk -s -k -L $(get_pd_user) -H "origin: $origin" "$pserver/mad_apk/pogo/$arch/download" || (( "$i" > "$dllimit" )) ;do
-        echo "Download APK PokemonGo"
+        echo "PokemonGo APK download failed, retry ..."
         /system/bin/rm -f /sdcard/Download/pogo/*
         i=$((i+1))
         sleep 2
