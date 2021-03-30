@@ -1,6 +1,6 @@
 #!/system/bin/sh
 #This is for update_mad version
-uver="4.0"
+uver="4.1"
 #This is for pingreboot version
 pver="2.1"
 #This is for nfs install script
