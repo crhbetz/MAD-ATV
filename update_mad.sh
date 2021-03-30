@@ -100,7 +100,7 @@ if checkupdate "$newver" "$installedver" ;then
  until curl -o /sdcard/Download/RemoteGpsController.apk  -s -k -L $(get_pd_user) -H "origin: $origin" "$pserver/mad_apk/rgc/download" || (( "$i" > "$dllimit" )) ;do
   rm -f /sdcard/Download/RemoteGpsController.apk
   i=$((i+1))
-  sleep
+  sleep 2
  done
  if (( "$i" > "$dllimit" )); then
   echo "Download of RGC failed!"
@@ -133,7 +133,7 @@ if checkupdate "$newver" "$installedver" ;then
  until curl -o /sdcard/Download/PogoDroid.apk -s -k -L $(get_pd_user) -H "origin: $origin" "$pserver/mad_apk/pogodroid/download" || (( "$i" > "$dllimit" )) ;do
   rm -f /sdcard/Download/PogoDroid.apk
   i=$((i+1))
-  sleep
+  sleep 2
  done
  if (( "$i" > "$dllimit" )); then
   echo "Download of PD failed!"
