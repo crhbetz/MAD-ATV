@@ -11,6 +11,7 @@
 # adb -s %1:5555 shell su -c "mount -o ro,remount /system"
 
 pdconf="/data/data/com.mad.pogodroid/shared_prefs/com.mad.pogodroid_preferences.xml"
+dllimit=4
 
 case "$(uname -m)" in
  aarch64) arch="arm64_v8a";;
@@ -95,10 +96,17 @@ installedver="$(dumpsys package de.grennith.rgc.remotegpscontroller 2>/dev/null|
 if checkupdate "$newver" "$installedver" ;then
  echo "updating RGC..."
  rm -f /sdcard/Download/RemoteGpsController.apk
- until curl -o /sdcard/Download/RemoteGpsController.apk  -s -k -L $(get_pd_user) -H "origin: $origin" "$pserver/mad_apk/rgc/download" ;do
+ i=0
+ until curl -o /sdcard/Download/RemoteGpsController.apk  -s -k -L $(get_pd_user) -H "origin: $origin" "$pserver/mad_apk/rgc/download" || (( "$i" > "$dllimit" )) ;do
   rm -f /sdcard/Download/RemoteGpsController.apk
+  i=$((i+1))
   sleep
  done
+ if (( "$i" > "$dllimit" )); then
+  echo "Download of RGC failed!"
+  reboot=1
+  return 1
+ fi
  if [[ "$installedver" ]] ;then
   /system/bin/pm install -r /sdcard/Download/RemoteGpsController.apk
  else
@@ -121,10 +129,17 @@ installedver="$(dumpsys package com.mad.pogodroid|awk -F'=' '/versionName/{print
 if checkupdate "$newver" "$installedver" ;then
  echo "updating pogodroid..."
  rm -f /sdcard/Download/PogoDroid.apk
- until curl -o /sdcard/Download/PogoDroid.apk -s -k -L $(get_pd_user) -H "origin: $origin" "$pserver/mad_apk/pogodroid/download" ;do
+ i=0
+ until curl -o /sdcard/Download/PogoDroid.apk -s -k -L $(get_pd_user) -H "origin: $origin" "$pserver/mad_apk/pogodroid/download" || (( "$i" > "$dllimit" )) ;do
   rm -f /sdcard/Download/PogoDroid.apk
+  i=$((i+1))
   sleep
  done
+ if (( "$i" > "$dllimit" )); then
+  echo "Download of PD failed!"
+  reboot=1
+  return 1
+ fi
  /system/bin/pm install -r /sdcard/Download/PogoDroid.apk
 fi
 reboot=1
@@ -144,11 +159,18 @@ mkdir -p /sdcard/Download/pogo
 /system/bin/rm -f /sdcard/Download/pogo/*
 case "$(curl -I -s -k -L $(get_pd_user) -H "origin: $origin" "$pserver/mad_apk/pogo/$arch/download"|grep -i Content-Type)" in
  *zip*) (cd /sdcard/Download/pogo
-       until curl -o /sdcard/Download/pogo/pogo.zip -s -k -L $(get_pd_user) -H "origin: $origin" "$pserver/mad_apk/pogo/$arch/download" && unzip pogo.zip && rm pogo.zip ;do
+       i=0
+       until (curl -o /sdcard/Download/pogo/pogo.zip -s -k -L $(get_pd_user) -H "origin: $origin" "$pserver/mad_apk/pogo/$arch/download" && unzip pogo.zip && rm pogo.zip) || (( "$i" > "$dllimit" )) ;do
         echo "Download ZIP PokemonGo"
         /system/bin/rm -f /sdcard/Download/pogo/*
+        i=$((i+1))
         sleep 2
        done
+       if (( "$i" > "$dllimit" )); then
+        echo "Download of PokemonGo ZIP failed!"
+        reboot=1
+        return 1
+       fi
        echo "Install ZIP PokemonGo"
        session=$(pm install-create -r | cut -d [ -f2 | cut -d ] -f1)
        for a in * ;do
@@ -157,11 +179,18 @@ case "$(curl -I -s -k -L $(get_pd_user) -H "origin: $origin" "$pserver/mad_apk/p
        pm install-commit $session )
  ;;
  *vnd.android.package-archive*)
-       until curl -o /sdcard/Download/pogo/pogo.apk -s -k -L $(get_pd_user) -H "origin: $origin" "$pserver/mad_apk/pogo/$arch/download" ;do
+       i=0
+       until curl -o /sdcard/Download/pogo/pogo.apk -s -k -L $(get_pd_user) -H "origin: $origin" "$pserver/mad_apk/pogo/$arch/download" || (( "$i" > "$dllimit" )) ;do
         echo "Download APK PokemonGo"
         /system/bin/rm -f /sdcard/Download/pogo/*
+        i=$((i+1))
         sleep 2
        done
+       if (( "$i" > "$dllimit" )); then
+        echo "Download of PokemonGo APK failed!"
+        reboot=1
+        return 1
+       fi
        echo "Install APK PokemonGo"
        /system/bin/pm install -r /sdcard/Download/pogo/pogo.apk
  ;;
